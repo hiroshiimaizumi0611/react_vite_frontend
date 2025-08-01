@@ -27,8 +27,6 @@ export default function LoginForm() {
     }
   }
 
-
-
   return (
     <div>
       <form className="space-y-6" onSubmit={handleSubmit}>
