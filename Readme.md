@@ -1,7 +1,7 @@
 # Frontend
 
 React + Vite 製 SPA。バックエンド APIと通信します。  
-**Docker Compose で瞬時に立ち上げられる** よう最小構成にしてあります。
+**Docker Compose** で立ち上げられるようしてあります。
 
 ---
 
@@ -20,4 +20,5 @@ docker compose up -d # 👉 http://localhost:3000 へアクセス
 # ④ サンプルユーザーでログイン
 SampleUser : 
     usernmae : testuser
+
     password : password
