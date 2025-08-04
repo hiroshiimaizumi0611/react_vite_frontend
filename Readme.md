@@ -20,6 +20,4 @@ docker compose up -d # 👉 http://localhost:3000 へアクセス
 # ④ サンプルユーザーでログイン
 SampleUser : 
     usernmae : testuser
-
     password : password
-
