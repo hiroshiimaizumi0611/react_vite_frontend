@@ -1,7 +1,7 @@
 # Frontend
 
 React + Vite 製 SPA。バックエンド APIと通信します。  
-**Docker Compose** で立ち上げられるようしてあります。
+**Docker Compose** で立ち上げられるようにしてあります。
 
 ---
 
@@ -22,3 +22,4 @@ SampleUser :
     usernmae : testuser
 
     password : password
+
