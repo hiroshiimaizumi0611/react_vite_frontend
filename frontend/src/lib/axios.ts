@@ -21,6 +21,10 @@ api.interceptors.response.use(
   async err => {
     const originalRequest = err.config
 
+    console.error('---------------------------------------')
+    console.error(err.response)
+    console.error(err.response.status)
+
     // [追加] メンテナンスモード検知（503）
     if (err.response && err.response.status === 503) {
       console.warn('メンテナンスモードを検知しました。メンテナンスページへ遷移します。')
