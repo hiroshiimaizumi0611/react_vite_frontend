@@ -15,8 +15,26 @@ api.interceptors.request.use(config => {
 })
 
 api.interceptors.response.use(
-  res => res,
-  async err => {
+  // ===== ここから変更 =====
+  // 第一引数：通信成功時のハンドラ
+  res => {
+    // レスポンスヘッダーからContent-Typeを取得
+    const contentType = res.headers['content-type']
+
+    // Content-Typeが 'text/html' を含んでいたらメンテナンスモードと判断
+    if (contentType && contentType.includes('text/html')) {
+      console.warn('メンテナンスモードを検知しました。ページをリロードします。')
+
+      // ページを強制的にリロードし、ALBのリダイレクトに従わせる
+      window.location.reload()
+
+      // 後続の処理を中断するために、エラーとして処理を終了
+      return Promise.reject(new Error('Maintenance Mode Detected'))
+    }
+
+    // メンテナンスモードでなければ、元のレスポンスをそのまま返す
+    return res
+  }, async err => {
     const originalRequest = err.config
 
     if (err.response.status === 401 && !originalRequest._retry) {
