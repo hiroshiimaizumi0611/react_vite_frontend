@@ -27,7 +27,13 @@ export const SideBar = () => (
       <Link to="/estimateDownload" className="mr-4">
         <Button variant="secoundary" className="justify-start w-full">
           <Download className="mr-3 h-5 w-5" />
-          ダウンロード
+          Excelダウンロード
+        </Button>
+      </Link>
+      <Link to="/csvDownload" className="mr-4">
+        <Button variant="secoundary" className="justify-start w-full">
+          <FileText className="mr-3 h-5 w-5" />
+          CSVダウンロード
         </Button>
       </Link>
       <Link to="/estimates" className="mr-4">

@@ -8,6 +8,7 @@ import LoginPage from '../pages/LoginPage'
 import { EstimateEditModal } from '../components/estimate/EstimateEditModal'
 import { EstimateCreateModal } from '../components/estimate/EstimateCreateModal'
 import CallbackPage from '../pages/CallbackPage'
+import { CsvDownloadPage } from '../pages/CsvDownloadPage'
 
 export default function AppRoutes() {
   return (
@@ -24,6 +25,7 @@ export default function AppRoutes() {
       >
         <Route index element={<HomePage />} />
         <Route path="estimateDownload" element={<EstimateDownloadPage />} />
+        <Route path="csvDownload" element={<CsvDownloadPage />} />
         <Route path="estimates" element={<Estimates />}>
           <Route path="new" element={<EstimateCreateModal />} />
           <Route path=":id/edit" element={<EstimateEditModal />} />
