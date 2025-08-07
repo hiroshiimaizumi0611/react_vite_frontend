@@ -1,6 +1,8 @@
 import axios from 'axios'
 import type { LoginResponse } from '../api/auth'
 
+const MAINTENANCE_URL = 'https://estimate-app-sorrypage.s3.ap-northeast-1.amazonaws.com/index.html'
+
 export const api = axios.create({
   baseURL: '/api/',
   withCredentials: true,
@@ -15,27 +17,16 @@ api.interceptors.request.use(config => {
 })
 
 api.interceptors.response.use(
-  // ===== ここから変更 =====
-  // 第一引数：通信成功時のハンドラ
-  res => {
-    // レスポンスヘッダーからContent-Typeを取得
-    const contentType = res.headers['content-type']
+  res => res,
+  async err => {
+    const originalRequest = err.config
 
-    // Content-Typeが 'text/html' を含んでいたらメンテナンスモードと判断
-    if (contentType && contentType.includes('text/html')) {
-      console.warn('メンテナンスモードを検知しました。ページをリロードします。')
-
-      // ページを強制的にリロードし、ALBのリダイレクトに従わせる
-      window.location.reload()
-
-      // 後続の処理を中断するために、エラーとして処理を終了
+    // [追加] メンテナンスモード検知（503）
+    if (err.response && err.response.status === 503) {
+      console.warn('メンテナンスモードを検知しました。メンテナンスページへ遷移します。')
+      window.location.href = MAINTENANCE_URL
       return Promise.reject(new Error('Maintenance Mode Detected'))
     }
-
-    // メンテナンスモードでなければ、元のレスポンスをそのまま返す
-    return res
-  }, async err => {
-    const originalRequest = err.config
 
     if (err.response.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true
@@ -60,6 +51,7 @@ api.interceptors.response.use(
         return Promise.reject(refreshError)
       }
     }
+
     return Promise.reject(err)
   },
 )
