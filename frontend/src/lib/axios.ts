@@ -1,20 +1,15 @@
 import axios from 'axios'
-import type { LoginResponse } from '../api/auth'
 
 const MAINTENANCE_URL = 'https://estimate-app-sorrypage.s3.ap-northeast-1.amazonaws.com/index.html'
 
 export const api = axios.create({
   baseURL: '/api/',
   withCredentials: true,
+  xsrfCookieName: 'XSRF-TOKEN',
+  xsrfHeaderName: 'X-XSRF-TOKEN',
 })
 
-api.interceptors.request.use(config => {
-  const token = localStorage.getItem('accessToken')
-  if (token && config.headers) {
-    config.headers.Authorization = `Bearer ${token}`
-  }
-  return config
-})
+// Authorization ヘッダは使用せず、Cookie (AT) を送信
 
 api.interceptors.response.use(
   res => res,
@@ -23,7 +18,7 @@ api.interceptors.response.use(
 
     console.error('---------------------------------------')
     console.error(err.response)
-    console.error(err.response.status)
+    console.error(err.response?.status)
 
     // [追加] メンテナンスモード検知（503）
     if (err.response && err.response.status === 503) {
@@ -32,25 +27,14 @@ api.interceptors.response.use(
       return Promise.reject(new Error('Maintenance Mode Detected'))
     }
 
-    if (err.response.status === 401 && !originalRequest._retry) {
+    if (err.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true
       try {
-        const refreshToken = localStorage.getItem('refreshToken')
-
-        if (!refreshToken) {
-          throw new Error('No refreshToken')
-        }
-        const res = await axios.post<LoginResponse>('/api/refresh', {
-          refreshToken,
-        })
-
-        localStorage.setItem('accessToken', res.data.accessToken)
-        localStorage.setItem('refreshToken', res.data.refreshToken)
-        originalRequest.headers.Authorization = `Bearer ${res.data.accessToken}`
-        return axios(originalRequest)
+        // Cookie ベースのリフレッシュ
+        await api.post('/auth/refresh')
+        // 新しい AT が Cookie で返るので、元のリクエストを再試行
+        return api(originalRequest)
       } catch (refreshError) {
-        localStorage.removeItem('accessToken')
-        localStorage.removeItem('refreshToken')
         window.location.href = '/login'
         return Promise.reject(refreshError)
       }

@@ -7,14 +7,12 @@ import { HomePage } from '../pages/HomePage'
 import LoginPage from '../pages/LoginPage'
 import { EstimateEditModal } from '../components/estimate/EstimateEditModal'
 import { EstimateCreateModal } from '../components/estimate/EstimateCreateModal'
-import CallbackPage from '../pages/CallbackPage'
 import { CsvDownloadPage } from '../pages/CsvDownloadPage'
 
 export default function AppRoutes() {
   return (
     <Routes>
       <Route path="/login" element={<LoginPage />} />
-      <Route path="/callback" element={<CallbackPage />} />
       <Route
         path="/"
         element={
