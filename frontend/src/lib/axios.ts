@@ -9,34 +9,55 @@ export const api = axios.create({
   xsrfHeaderName: 'X-XSRF-TOKEN',
 })
 
-// Authorization ヘッダは使用せず、Cookie (AT) を送信
+// CSRF ヘルパ: XSRF-TOKEN Cookie が無ければ取得
+async function ensureCsrf() {
+  const has = document.cookie.match(/(?:^|; )XSRF-TOKEN=([^;]+)/)
+  if (!has) {
+    await fetch('/api/csrf', { credentials: 'same-origin' })
+  }
+}
 
+// refresh 併発制御（多重401発生時に1回だけ実行）
+let refreshPromise: Promise<void> | null = null
+
+// Authorization ヘッダは使用せず、Cookie (AT) を送信
 api.interceptors.response.use(
   res => res,
   async err => {
-    const originalRequest = err.config
+    const res = err?.response as { status?: number } | undefined
+    const cfg = (err?.config || {}) as any
 
-    console.error('---------------------------------------')
-    console.error(err.response)
-    console.error(err.response?.status)
-
-    // [追加] メンテナンスモード検知（503）
-    if (err.response && err.response.status === 503) {
-      console.warn('メンテナンスモードを検知しました。メンテナンスページへ遷移します。')
+    // 503: メンテナンス誘導
+    if (res?.status === 503) {
       window.location.href = MAINTENANCE_URL
-      return Promise.reject(new Error('Maintenance Mode Detected'))
+      return Promise.reject(err)
     }
 
-    if (err.response?.status === 401 && !originalRequest._retry) {
-      originalRequest._retry = true
+    // リフレッシュ自身は対象外（無限ループ防止）
+    const url: string = (cfg?.url || '')
+    if (url.includes('/auth/refresh')) {
+      return Promise.reject(err)
+    }
+
+    // 401 を1回だけリトライ（refresh → 元リクエスト再実行）
+    if (res?.status === 401 && !cfg.__retried) {
+      cfg.__retried = true
       try {
-        // Cookie ベースのリフレッシュ
-        await api.post('/auth/refresh')
-        // 新しい AT が Cookie で返るので、元のリクエストを再試行
-        return api(originalRequest)
-      } catch (refreshError) {
-        window.location.href = '/login'
-        return Promise.reject(refreshError)
+        if (!refreshPromise) {
+          refreshPromise = (async () => {
+            await ensureCsrf()
+            // xsrfCookieName/xsrfHeaderName 設定により axios が自動でヘッダ付与
+            await api.post('auth/refresh')
+          })()
+        }
+        await refreshPromise
+        refreshPromise = null
+        return api(cfg)
+      } catch (e) {
+        refreshPromise = null
+        // refresh も失敗 → ログイン導線へ
+        window.location.href = '/oauth2/authorization/azure'
+        return Promise.reject(e)
       }
     }
 
