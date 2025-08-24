@@ -13,6 +13,7 @@ export const api = axios.create({
 async function ensureCsrf() {
   const has = document.cookie.match(/(?:^|; )XSRF-TOKEN=([^;]+)/)
   if (!has) {
+    // same-origin 前提。もし別オリジン構成の場合は 'include' に変更してCORS対応が必要
     await fetch('/api/csrf', { credentials: 'same-origin' })
   }
 }
@@ -47,7 +48,17 @@ api.interceptors.response.use(
           refreshPromise = (async () => {
             await ensureCsrf()
             // xsrfCookieName/xsrfHeaderName 設定により axios が自動でヘッダ付与
-            await api.post('auth/refresh')
+            try {
+              await api.post('auth/refresh')
+            } catch (e: any) {
+              // 稀にトークン不一致などで 403 が発生した場合、再取得して一度だけ再試行
+              if (e?.response?.status === 403) {
+                await ensureCsrf()
+                await api.post('auth/refresh')
+              } else {
+                throw e
+              }
+            }
           })()
         }
         await refreshPromise
