@@ -37,6 +37,9 @@ api.interceptors.response.use(
     // リフレッシュ自身は対象外（無限ループ防止）
     const url: string = (cfg?.url || '')
     if (url.includes('/auth/refresh')) {
+      if (res?.status === 401 || res?.status === 403) {
+        window.location.href = '/oauth2/authorization/azure'
+      }
       return Promise.reject(err)
     }
 
