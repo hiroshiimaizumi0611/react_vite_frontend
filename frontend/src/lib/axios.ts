@@ -67,7 +67,7 @@ api.interceptors.response.use(
       } catch (e) {
         refreshPromise = null
         // refresh も失敗 → ログイン導線へ
-        // window.location.href = '/oauth2/authorization/azure'
+        window.location.href = '/oauth2/authorization/azure'
         return Promise.reject(e)
       }
     }
