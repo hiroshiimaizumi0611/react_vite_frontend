@@ -13,8 +13,10 @@ export const api = axios.create({
 async function ensureCsrf() {
   const has = document.cookie.match(/(?:^|; )XSRF-TOKEN=([^;]+)/)
   if (!has) {
+    console.debug('[axios] XSRF-TOKEN not present. Fetching /api/csrf ...')
     // same-origin 前提。もし別オリジン構成の場合は 'include' に変更してCORS対応が必要
     await fetch('/api/csrf', { credentials: 'same-origin' })
+    console.debug('[axios] /api/csrf fetched. Cookie should be set.')
   }
 }
 
@@ -27,6 +29,11 @@ api.interceptors.response.use(
   async err => {
     const res = err?.response as { status?: number } | undefined
     const cfg = (err?.config || {}) as any
+    const url: string = (cfg?.url || '')
+    const status = res?.status
+    if (status) {
+      console.debug('[axios] response error:', status, 'for', url)
+    }
 
     // 503: メンテナンス誘導
     if (res?.status === 503) {
@@ -34,31 +41,36 @@ api.interceptors.response.use(
       return Promise.reject(err)
     }
 
-    // リフレッシュ自身は対象外（無限ループ防止）
-    const url: string = (cfg?.url || '')
+    // リフレッシュ自身は対象外（無限ループ防止）だが、401/403 の場合はフォールバックで即リダイレクト
     if (url.includes('/auth/refresh')) {
-      if (res?.status === 401 || res?.status === 403) {
-        window.location.href = '/oauth2/authorization/azure'
+      if (status === 401 || status === 403) {
+        console.debug('[axios] refresh returned', status, '→ redirect to OAuth2')
+        window.location.assign('/oauth2/authorization/azure')
       }
       return Promise.reject(err)
     }
 
     // 401 を1回だけリトライ（refresh → 元リクエスト再実行）
-    if (res?.status === 401 && !cfg.__retried) {
+    if (status === 401 && !cfg.__retried) {
       cfg.__retried = true
       try {
         if (!refreshPromise) {
           refreshPromise = (async () => {
             await ensureCsrf()
             // xsrfCookieName/xsrfHeaderName 設定により axios が自動でヘッダ付与
+            console.debug('[axios] attempting refresh ...')
             try {
               await api.post('auth/refresh')
+              console.debug('[axios] refresh succeeded')
             } catch (e: any) {
               // 稀にトークン不一致などで 403 が発生した場合、再取得して一度だけ再試行
               if (e?.response?.status === 403) {
+                console.debug('[axios] refresh 403. Re-fetching CSRF and retrying refresh once ...')
                 await ensureCsrf()
                 await api.post('auth/refresh')
+                console.debug('[axios] refresh retry succeeded')
               } else {
+                console.warn('[axios] refresh failed:', e?.response?.status)
                 throw e
               }
             }
@@ -66,11 +78,13 @@ api.interceptors.response.use(
         }
         await refreshPromise
         refreshPromise = null
+        console.debug('[axios] retrying original request after refresh:', url)
         return api(cfg)
       } catch (e) {
         refreshPromise = null
         // refresh も失敗 → ログイン導線へ
-        window.location.href = '/oauth2/authorization/azure'
+        console.debug('[axios] refresh failed. Redirecting to OAuth2 login ...')
+        window.location.assign('/oauth2/authorization/azure')
         return Promise.reject(e)
       }
     }
