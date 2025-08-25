@@ -41,8 +41,10 @@ api.interceptors.response.use(
       return Promise.reject(err)
     }
 
+    const isRefresh = /(^|\/)auth\/refresh(\?|$)/.test(url)
+
     // リフレッシュ自身は対象外（無限ループ防止）だが、401/403 の場合はフォールバックで即リダイレクト
-    if (url.includes('/auth/refresh')) {
+    if (isRefresh) {
       if (status === 401 || status === 403) {
         console.debug('[axios] refresh returned', status, '→ redirect to OAuth2')
         window.location.assign('/oauth2/authorization/azure')
