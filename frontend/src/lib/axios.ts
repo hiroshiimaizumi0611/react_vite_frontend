@@ -20,6 +20,10 @@ async function ensureCsrf() {
   }
 }
 
+export async function bootstrapCsrf() {
+  await api.get('/csrf')              // 初回発行（JSONにもtokenが入るがCookie生成が目的）
+}
+
 // refresh 併発制御（多重401発生時に1回だけ実行）
 let refreshPromise: Promise<void> | null = null
 
