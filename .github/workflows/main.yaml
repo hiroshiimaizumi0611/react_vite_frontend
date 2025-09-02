@@ -36,7 +36,7 @@ jobs:
         run: |
           cd frontend
           docker build \
-            --build-arg VITE_STAGE=prod \
+            --build-arg VITE_STAGE=dev \
             -t $ECR_REPO:$TAG .
           docker push $ECR_REPO:$TAG
           sed -i "s/^  tag: .*/  tag: ${TAG}/" helm-chart/values.yaml

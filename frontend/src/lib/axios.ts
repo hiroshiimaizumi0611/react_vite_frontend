@@ -47,7 +47,7 @@ api.interceptors.response.use(
     if (isRefresh) {
       if (status === 401 || status === 403) {
         console.debug('[axios] refresh returned', status, '→ redirect to OAuth2')
-        window.location.assign('/oauth2/authorization/azure')
+        window.location.assign('/oauth2/authorization/cognito')
       }
       return Promise.reject(err)
     }
@@ -86,7 +86,7 @@ api.interceptors.response.use(
         refreshPromise = null
         // refresh も失敗 → ログイン導線へ
         console.debug('[axios] refresh failed. Redirecting to OAuth2 login ...')
-        window.location.assign('/oauth2/authorization/azure')
+        window.location.assign('/oauth2/authorization/cognito')
         return Promise.reject(e)
       }
     }
